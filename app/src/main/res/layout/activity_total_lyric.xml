@@ -3,8 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context=".TotalLyricActivity">
+    android:layout_height="match_parent">
 
     <Button
         android:id="@+id/closeBtn"
@@ -20,8 +19,8 @@
         app:layout_constraintWidth_default="percent"
         app:layout_constraintWidth_percent="0.07" />
 
-    <ListView
-        android:id="@+id/listView"
+    <FrameLayout
+        android:id="@+id/frameLyricList"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_marginStart="10dp"
@@ -33,10 +32,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/closeBtn"
         app:layout_constraintHeight_default="percent"
-        app:layout_constraintHeight_percent="0.8"
-        android:divider="@null"
-        android:dividerHeight="0px"
-        android:listSelector="@android:color/transparent"/>
+        app:layout_constraintHeight_percent="0.8"/>
 
     <Switch
         android:id="@+id/touchPlayBtn"

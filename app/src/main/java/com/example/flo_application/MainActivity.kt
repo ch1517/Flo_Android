@@ -3,24 +3,21 @@ package com.example.flo_application
 import android.app.Activity
 import android.content.Intent
 import android.media.MediaPlayer
-import android.net.Uri
 import android.os.AsyncTask
 import android.os.Bundle
 import android.os.Handler
 import android.util.Log
+import android.view.View
 import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
 import androidx.appcompat.app.AppCompatActivity
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.resource.bitmap.CenterCrop
-import com.bumptech.glide.load.resource.bitmap.RoundedCorners
+import androidx.fragment.app.FragmentTransaction
 import kotlinx.android.synthetic.main.activity_main.*
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
-import java.text.FieldPosition
 
 class MainActivity : AppCompatActivity() {
     private val urlInfo = "https://grepp-programmers-challenges.s3.ap-northeast-2.amazonaws.com/2020-flo/song.json"
@@ -31,13 +28,25 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         mContext=this
-        RestAPITask().execute(urlInfo)
-    }
+        val transaction = supportFragmentManager.beginTransaction()
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
+        RestAPITask(transaction).execute(urlInfo)
     }
-    inner class RestAPITask : AsyncTask<String, JSONObject, JSONObject>(){
+    public fun getDuration(str:String){
+        if(mp!=null){
+            Log.d("123123",str)
+        }
+    }
+    public fun setSeekTo(progress:Int){
+        if(mp!=null){
+            mp.seekTo(progress) // 재생위치를 바꿔준다(움직인 곳에서의 음악재생)
+        }
+    }
+    inner class RestAPITask : AsyncTask<String, JSONObject, JSONObject>{
+        var mTransaction:FragmentTransaction
+        constructor(transaction: FragmentTransaction){
+            mTransaction=transaction
+        }
         override fun onPreExecute() {
             super.onPreExecute()
         }
@@ -75,9 +84,10 @@ class MainActivity : AppCompatActivity() {
             Log.d("응답 결과 ",result.toString())
             if (result!=null){
                 val alumImgURL = result.getString("image") as String
-                mContext.singerTxt.text = result.getString("singer") as String
-                mContext.albumTxt.text = result.getString("album") as String
-                mContext.titleTxt.text = result.getString("title") as String
+                val singerTxt = result.getString("singer") as String
+                val albumTxt = result.getString("album") as String
+                val titleTxt = result.getString("title") as String
+
                 var lyrics = result.getString("lyrics").split("[","]").toMutableList()
                 lyrics.removeAt(0)
 
@@ -91,15 +101,30 @@ class MainActivity : AppCompatActivity() {
                         lyrics[i] = lyrics[i].substring(0,lyrics[i].length-1)
                     }
                 }
+                mTransaction = supportFragmentManager.beginTransaction()
+                mTransaction.replace(R.id.flagment,
+                    PlayFragment().apply {
+                        arguments = Bundle().apply{
+                            putString("alumImgURL",alumImgURL)
+                            putString("singerTxt",singerTxt)
+                            putString("albumTxt",albumTxt)
+                            putString("titleTxt",titleTxt)
+                            putSerializable("lyrics",lyrics as ArrayList<String>)
+                        }
+                    }).commitAllowingStateLoss()
+                mContext.totalLyricBtn.setOnClickListener() {
+                        mTransaction = supportFragmentManager.beginTransaction()
+                        mTransaction.replace(R.id.flagment,
+                            FullScreenLyricFragment().apply {
+                                arguments = Bundle().apply{
+                                    putSerializable("lyrics",lyrics as ArrayList<String>)
+                                }
+                            })
+                            .addToBackStack(null)
+                            .commit()
 
-                mContext.totalLyricBtn.setOnClickListener {
-                    val intent = Intent(mContext,TotalLyricActivity::class.java)
-                    intent.putExtra("lyrics",lyrics.toTypedArray())
-                    mContext.startActivityForResult(intent,1)
                 }
                 settingSeekBar(lyrics)
-                Glide.with(mContext).load(alumImgURL)
-                .transform(CenterCrop(), RoundedCorners(30)).into(mContext.albumImg);
             }
         }
 
@@ -146,21 +171,9 @@ class MainActivity : AppCompatActivity() {
                 override fun run() {
                     if (mp.isPlaying){ // 재생 중일 때만 seekbar update
                         mContext.seekBar.setProgress(mp.getCurrentPosition())
-                        settingLyrics(mp.getCurrentPosition(),lyrics)
                     }
                     handler.postDelayed(this,200)
                 }
-            }
-        }
-        fun settingLyrics(duration: Int, lyrics: List<String>){
-            var i = 0
-            var index = -1
-            while(i<lyrics.size-1 && duration>Integer.parseInt(lyrics[i])){
-                index=i
-                i+=2
-            }
-            if(index>-1 && index<lyrics.size-1){
-                mContext.lyricsTxt.text = lyrics[index+1]
             }
         }
     }
