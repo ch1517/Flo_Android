@@ -12,6 +12,7 @@ import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.FragmentTransaction
+import androidx.lifecycle.ViewModelProvider
 import kotlinx.android.synthetic.main.activity_main.*
 import org.json.JSONObject
 import java.io.BufferedReader
@@ -24,22 +25,28 @@ class MainActivity : AppCompatActivity() {
     private val mp: MediaPlayer = MediaPlayer()
     private lateinit var mContext:Activity
     private lateinit var runTread:Runnable
+    private lateinit var viewModel :MainViewModel
+    private var currentPosition:Int = -1
+    private lateinit var lyrics:ArrayList<String>
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         mContext=this
         val transaction = supportFragmentManager.beginTransaction()
+        viewModel = ViewModelProvider(this, ViewModelProvider.NewInstanceFactory()).get(MainViewModel::class.java)
 
         RestAPITask(transaction).execute(urlInfo)
     }
-    public fun getDuration(str:String){
-        if(mp!=null){
-            Log.d("123123",str)
-        }
+    public fun showFullLyricBtn(){
+        mContext.totalLyricBtn.visibility = View.VISIBLE
     }
     public fun setSeekTo(progress:Int){
         if(mp!=null){
-            mp.seekTo(progress) // 재생위치를 바꿔준다(움직인 곳에서의 음악재생)
+            // 자막 왔다갔다 때문에 약간의 버퍼 주기
+            // 없으면 이전 자막이 잠깐 불러와진다.
+            mp.seekTo(progress+10) // 재생위치를 바꿔준다(움직인 곳에서의 음악재생)
+            setCurrentPosition()
         }
     }
     inner class RestAPITask : AsyncTask<String, JSONObject, JSONObject>{
@@ -78,7 +85,7 @@ class MainActivity : AppCompatActivity() {
             }
             return jsonObject
         }
-//        UI Update
+        //        UI Update
         override fun onPostExecute(result: JSONObject?) {
             super.onPostExecute(result)
             Log.d("응답 결과 ",result.toString())
@@ -88,7 +95,7 @@ class MainActivity : AppCompatActivity() {
                 val albumTxt = result.getString("album") as String
                 val titleTxt = result.getString("title") as String
 
-                var lyrics = result.getString("lyrics").split("[","]").toMutableList()
+                lyrics = result.getString("lyrics").split("[","]").toMutableList() as ArrayList<String>
                 lyrics.removeAt(0)
 
                 for (i in 0..lyrics.size-1 step 1){
@@ -113,26 +120,27 @@ class MainActivity : AppCompatActivity() {
                         }
                     }).commitAllowingStateLoss()
                 mContext.totalLyricBtn.setOnClickListener() {
-                        mTransaction = supportFragmentManager.beginTransaction()
-                        mTransaction.replace(R.id.flagment,
-                            FullScreenLyricFragment().apply {
-                                arguments = Bundle().apply{
-                                    putSerializable("lyrics",lyrics as ArrayList<String>)
-                                }
-                            })
-                            .addToBackStack(null)
-                            .commit()
+                    mTransaction = supportFragmentManager.beginTransaction()
+                    mTransaction.replace(R.id.flagment,
+                        FullScreenLyricFragment().apply {
+                            arguments = Bundle().apply{
+                                putSerializable("lyrics",lyrics as ArrayList<String>)
+                            }
+                        })
+                        .addToBackStack(null)
+                        .commit()
+                    mContext.totalLyricBtn.visibility = View.GONE
 
                 }
-                settingSeekBar(lyrics)
+                settingSeekBar()
             }
         }
 
-        fun settingSeekBar(lyrics: List<String>){
-            var handler:Handler = Handler()
+        fun settingSeekBar(){
+            val handler:Handler = Handler()
             if (mp!=null){
                 mContext.seekBar.max = mp.duration
-                runTread=runnable(handler,lyrics)
+                runTread=runnable(handler)
                 mContext.runOnUiThread(runTread)
             }
             mp.setOnPreparedListener(object:MediaPlayer.OnPreparedListener{
@@ -165,17 +173,37 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-
-        fun runnable(handler:Handler,lyrics:List<String>): Runnable {
+        fun runnable(handler:Handler): Runnable {
             return object : Runnable {
                 override fun run() {
                     if (mp.isPlaying){ // 재생 중일 때만 seekbar update
                         mContext.seekBar.setProgress(mp.getCurrentPosition())
+                        setCurrentPosition()
                     }
-                    handler.postDelayed(this,200)
+                    handler.postDelayed(this,100)
                 }
             }
         }
-    }
 
+    }
+    fun setCurrentPosition(){
+        val p = countLyricPosition(lyrics,mp.getCurrentPosition())
+        if (currentPosition!=p){
+            currentPosition=p
+            viewModel.setPlayPosition(currentPosition)
+        }
+    }
+    fun countLyricPosition(lyrics: ArrayList<String>,duration:Int):Int{
+        var i = 0
+        var index = -1
+        while(i<lyrics.size-1 && duration>Integer.parseInt(lyrics[i])){
+            index=i
+            i+=2
+        }
+        return index
+    }
+    override fun onDestroy() {
+        super.onDestroy()
+        mp.release()
+    }
 }

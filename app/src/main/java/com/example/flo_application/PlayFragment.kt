@@ -34,10 +34,10 @@ class PlayFragment : Fragment() {
 
             val transaction = childFragmentManager.beginTransaction()
             transaction.replace(R.id.flgmentLyric,
-                TotalLyricFragment().apply {
+                LyricFragment().apply {
                     arguments = Bundle().apply{
                         putSerializable("lyrics",lyrics)
-                        putBoolean("touchMode",false)
+                        putInt("touchMode",-1)
                     }
                 }).commit()
 
@@ -48,15 +48,4 @@ class PlayFragment : Fragment() {
         return view
     }
 
-//    fun settingLyrics(view:View, duration: Int, lyrics: List<String>){
-//            var i = 0
-//            var index = -1
-//            while(i<lyrics.size-1 && duration>Integer.parseInt(lyrics[i])){
-//                index=i
-//                i+=2
-//            }
-//            if(index>-1 && index<lyrics.size-1){
-//                view.lyricsTxt.text = lyrics[index+1]
-//            }
-//    }
 }
