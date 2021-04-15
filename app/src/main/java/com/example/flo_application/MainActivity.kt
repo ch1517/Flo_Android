@@ -81,7 +81,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }catch (e: Exception){
                 Log.e("REST_API", "GET method failed: " + e.toString());
-                e.printStackTrace();
+//                e.printStackTrace();
             }
             return jsonObject
         }
