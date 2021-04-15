@@ -6,12 +6,21 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 
 class MainViewModel:ViewModel(){
-    private val  playPosition: MutableLiveData<Int> = MutableLiveData<Int>()
+    private val  playPosition: MutableLiveData<Int> = MutableLiveData<Int>() // 재생위치
+    private var touchToggle: MutableLiveData<Int> = MutableLiveData<Int>() // 터치모드 switch toggle state
 
-    public fun getPlayPosition():LiveData<Int>{
+    fun getPlayPosition():LiveData<Int>{
         return playPosition
     }
-    public fun setPlayPosition(position:Int){
+    fun setPlayPosition(position:Int){
         playPosition.value = position
     }
+
+    fun getTouchToggle():LiveData<Int>{
+        return touchToggle
+    }
+    fun setTouchToggle(state:Int){
+        touchToggle.value = state
+    }
+
 }

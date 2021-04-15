@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
+import androidx.lifecycle.ViewModelProvider
 import kotlinx.android.synthetic.main.activity_total_lyric.view.*
 
 class FullScreenLyricFragment : Fragment() {
@@ -14,12 +15,11 @@ class FullScreenLyricFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
     }
-    fun loadLyrics(lyrics:ArrayList<String>,transaction: FragmentTransaction,state:Int){
-        transaction.replace(R.id.frameLyricList,
+    fun loadLyrics(lyrics:ArrayList<String>,transaction: FragmentTransaction){
+        transaction.replace(R.id.frameLyricFrame,
             LyricFragment().apply {
                 arguments = Bundle().apply{
                     putSerializable("lyrics",lyrics)
-                    putInt("touchMode",state)
                 }
             }).commitAllowingStateLoss()
     }
@@ -31,12 +31,21 @@ class FullScreenLyricFragment : Fragment() {
                               savedInstanceState: Bundle?): View? {
         val fragmentView = inflater.inflate(R.layout.activity_total_lyric, null)
         val lyrics = arguments?.getSerializable("lyrics") as ArrayList<String>
-        loadLyrics(lyrics,childFragmentManager.beginTransaction(), if(fragmentView.touchPlayBtn.isChecked) 1 else 0)
+        // main
+        val viewModel = ViewModelProvider(
+            activity,
+            ViewModelProvider.NewInstanceFactory()
+        ).get(MainViewModel::class.java)
+        var touchMode = viewModel.getTouchToggle().value
+        if(touchMode==null) touchMode=0
+
+        fragmentView.touchPlayBtn.isChecked = if(touchMode==1) true else false
+        loadLyrics(lyrics,childFragmentManager.beginTransaction())
         fragmentView.touchPlayBtn.setOnCheckedChangeListener { compoundButton, b ->
             if(b){
-                loadLyrics(lyrics,childFragmentManager.beginTransaction(),1)
+                viewModel.setTouchToggle(1)
             }else{
-                loadLyrics(lyrics,childFragmentManager.beginTransaction(),0)
+                viewModel.setTouchToggle(0)
             }
         }
         fragmentView.closeBtn.setOnClickListener {

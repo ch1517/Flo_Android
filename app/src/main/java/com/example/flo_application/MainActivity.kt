@@ -38,10 +38,10 @@ class MainActivity : AppCompatActivity() {
 
         RestAPITask(transaction).execute(urlInfo)
     }
-    public fun showFullLyricBtn(){
+    fun showFullLyricBtn(){
         mContext.totalLyricBtn.visibility = View.VISIBLE
     }
-    public fun setSeekTo(progress:Int){
+    fun setSeekTo(progress:Int){
         if(mp!=null){
             // 자막 왔다갔다 때문에 약간의 버퍼 주기
             // 없으면 이전 자막이 잠깐 불러와진다.
@@ -94,8 +94,8 @@ class MainActivity : AppCompatActivity() {
                 val singerTxt = result.getString("singer") as String
                 val albumTxt = result.getString("album") as String
                 val titleTxt = result.getString("title") as String
-
-                lyrics = result.getString("lyrics").split("[","]").toMutableList() as ArrayList<String>
+                val lyricsStr = result.getString("lyrics").replace("\n","")
+                lyrics = lyricsStr.split("[","]").toMutableList() as ArrayList<String>
                 lyrics.removeAt(0)
 
                 for (i in 0..lyrics.size-1 step 1){
@@ -103,9 +103,6 @@ class MainActivity : AppCompatActivity() {
                         //시간 초로 변환
                         var str = lyrics[i].split(":")
                         lyrics[i]=(Integer.parseInt(str[0])*60000+Integer.parseInt(str[1])*1000+Integer.parseInt(str[2])).toString()
-                    }else{
-                        // 공백문자 제거
-                        lyrics[i] = lyrics[i].substring(0,lyrics[i].length-1)
                     }
                 }
                 mTransaction = supportFragmentManager.beginTransaction()
@@ -150,18 +147,23 @@ class MainActivity : AppCompatActivity() {
             });
 
             mContext.seekBar.setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
+                var progress:Int=0
                 override fun onProgressChanged(
                     seekBar: SeekBar,
-                    progress: Int,
+                    _progress: Int,
                     fromUser: Boolean
                 ) {
                     if (mp!=null && fromUser){
                         // 사용자가 시크바를 움직이면
-                        mp.seekTo(progress) // 재생위치를 바꿔준다(움직인 곳에서의 음악재생)
+                        progress = _progress
                     }
                 }
-                override fun onStartTrackingTouch(seekBar: SeekBar) {}
-                override fun onStopTrackingTouch(seekBar: SeekBar) {}
+                override fun onStartTrackingTouch(seekBar: SeekBar) {
+                }
+                override fun onStopTrackingTouch(seekBar: SeekBar) {
+                    setSeekTo(progress) // 재생위치를 바꿔준다(움직인 곳에서의 음악재생)
+                    setCurrentPosition()
+                }
             })
             mContext.startBtn.setOnCheckedChangeListener { _, isChecked ->
                 if(isChecked){
@@ -189,6 +191,7 @@ class MainActivity : AppCompatActivity() {
     fun setCurrentPosition(){
         val p = countLyricPosition(lyrics,mp.getCurrentPosition())
         if (currentPosition!=p){
+            Log.d("setCurrentPosition",currentPosition.toString()+","+p.toString())
             currentPosition=p
             viewModel.setPlayPosition(currentPosition)
         }
