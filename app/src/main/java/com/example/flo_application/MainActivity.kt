@@ -178,7 +178,7 @@ class MainActivity : AppCompatActivity() {
         fun runnable(handler:Handler): Runnable {
             return object : Runnable {
                 override fun run() {
-                    if (mp.isPlaying){ // 재생 중일 때만 seekbar update
+                    if (mp!=null&& mp.isPlaying){ // 재생 중일 때만 seekbar update
                         mContext.seekBar.setProgress(mp.getCurrentPosition())
                         setCurrentPosition()
                     }
@@ -191,7 +191,6 @@ class MainActivity : AppCompatActivity() {
     fun setCurrentPosition(){
         val p = countLyricPosition(lyrics,mp.getCurrentPosition())
         if (currentPosition!=p){
-            Log.d("setCurrentPosition",currentPosition.toString()+","+p.toString())
             currentPosition=p
             viewModel.setPlayPosition(currentPosition)
         }
